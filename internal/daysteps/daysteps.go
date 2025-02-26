@@ -1,12 +1,13 @@
 package daysteps
 
 import (
-	"time"
-	"fmt"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
-	"fitness-4-sprint/internal/spentcalories"
+	"time"
+
+	"github.com/alex1234ak/fitness-4-sprint/internal/spentcalories"
 )
 
 var (
@@ -14,26 +15,22 @@ var (
 )
 
 func parsePackage(data string) (int, time.Duration, error) {
-	// ваш код ниже
-//Разделить строку на слайс строк.
-parts := strings.Split(data, " ")
-//Проверить, чтобы длина слайса была равна 2, так как в строке данных у нас количество шагов и продолжительность.
-if len(parts) != 2 {
-	return 0, 0, errors.New("Ошибка длины слайса")
-//Преобразовать первый элемент слайса (количество шагов) в тип int. Обработать возможные ошибки. 
-//При их возникновении из функции вернуть 0 шагов, 0 продолжительность и ошибку.
-steps, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, 0, errors.New("Ошибка ввода количества шагов")
+	parts := strings.Split(data, " ")
+	if len(parts) != 2 {
+		return 0, 0, errors.New("invalid data format: expected steps and duration")
 	}
-//Преобразовать второй элемент слайса в time.Duration. В пакете time есть метод для парсинга строки в time.Duration. 
-//Обработать возможные ошибки. При их возникновении из функции вернуть 0 шагов, 0 продолжительность и ошибку.
-duration, err := time.ParseDuration(parts[1])
+
+	steps, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return 0, 0, errors.New("Ошибка ввода продолжительности тренировки")
+		return 0, 0, errors.New("invalid steps format")
 	}
-//Если всё прошло без ошибок, верните количество шагов, продолжительность и nil (для ошибки).
-return steps, duration, nil
+
+	duration, err := time.ParseDuration(parts[1])
+	if err != nil {
+		return 0, 0, errors.New("invalid duration format")
+	}
+
+	return steps, duration, nil
 }
 
 // DayActionInfo обрабатывает входящий пакет, который передаётся в
@@ -43,31 +40,24 @@ return steps, duration, nil
 // Если пакет валидный, он добавляется в слайс storage, который возвращает
 // функция. Если пакет невалидный, storage возвращается без изменений.
 func DayActionInfo(data string, weight, height float64) string {
-	// ваш код ниже
-//Алгоритм реализации функции:
-//Получить данные о количестве шагов и продолжительности прогулки с помощью функции parsePackage(). 
-//В случае возникновения ошибки вывести её на экран и вернуть пустую строку.
-steps, duration, err := parsePackage(data)
+	steps, duration, err := parsePackage(data)
 	if err != nil {
-		fmt.Println("Ошибка:", err)
+		fmt.Println("Error:", err)
 		return ""
 	}
-//Проверить, чтобы количество шагов было больше 0. В противном случае вернуть пустую строку.
-if steps <= 0 {
-	fmt.Println("Ошибка: количество шагов должно быть больше 0")
-	return ""
-}
-//Вычислить дистанцию в метрах. Дистанция равна произведению количества шагов на длину шага. 
-//Константа StepLength (длина шага) уже определена в коде.
-distanceMeters := float64(steps) * StepLength
-//Перевести дистанцию в километры, разделив её на 1000.
-distanceKilometers := distanceMeters / 1000
-//Вычислить количество калорий, потраченных на прогулке. 
-//Функция для вычисления калорий WalkingSpentCalories() будет определена в пакете spentcalories, которую вы тоже реализуете.
-calories := spentcalories.WalkingSpentCalories(steps, weight, height)
-//Сформировать строку, которую будете возвращать, пример которой был представлен выше.
-result := fmt.Sprintf("Шаги: %d, Дистанция: %.2f км, Время: %s, Калории: %.2f ккал",
+
+	if steps <= 0 {
+		fmt.Println("Error: steps must be greater than 0")
+		return ""
+	}
+
+	distanceMeters := float64(steps) * StepLength
+	distanceKilometers := distanceMeters / spentcalories.MetersInKilometer
+
+	calories := spentcalories.WalkingSpentCalories(steps, weight, height, duration)
+
+	result := fmt.Sprintf("Steps: %d, Distance: %.2f km, Time: %s, Calories: %.2f kcal",
 		steps, distanceKilometers, duration, calories)
+
 	return result
-}
 }
